@@ -5,6 +5,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# The APK remains debuggable, but the inference engine must be optimized.
+# AGP otherwise passes CMAKE_BUILD_TYPE=Debug for assembleDebug.
+if(ANDROID)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Native engine build type" FORCE)
+endif()
+
 # Reproducible upstream llama.cpp source snapshot.
 include(FetchContent)
 set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -21,6 +27,9 @@ set(GGML_METAL OFF CACHE BOOL "" FORCE)
 set(GGML_RPC OFF CACHE BOOL "" FORCE)
 set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
 set(GGML_LLAMAFILE OFF CACHE BOOL "" FORCE)
+# Arm-optimized CPU microkernels; dispatches only when the runtime CPU supports them.
+set(GGML_CPU_KLEIDIAI ON CACHE BOOL "" FORCE)
+set(GGML_LTO ON CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
@@ -30,6 +39,9 @@ FetchContent_Declare(
     GIT_SHALLOW FALSE
 )
 FetchContent_MakeAvailable(llama_cpp)
+
+message(STATUS "VEYRA native build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "VEYRA CPU backend: KleidiAI enabled; GPU/Vulkan backends disabled")
 
 add_library(veyra_native SHARED veyra_jni.cpp)
 target_include_directories(veyra_native PRIVATE ${llama_cpp_SOURCE_DIR}/include)
