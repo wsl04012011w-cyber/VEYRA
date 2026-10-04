@@ -5,7 +5,6 @@
 #include <atomic>
 #include <mutex>
 #include <string>
-#include <thread>
 #include <vector>
 
 namespace {
@@ -67,7 +66,7 @@ Java_com_veyra_app_nativeengine_NativeLlama_nativeLoadModel(
     }
 
     auto model_params = llama_model_default_params();
-    model_params.n_gpu_layers = 0; // CPU-first Android baseline.
+    model_params.n_gpu_layers = 0; // Force all model layers to remain on CPU.
     model_params.load_mode = LLAMA_LOAD_MODE_MMAP;
     g_model = llama_model_load_from_file(path, model_params);
     env->ReleaseStringUTFChars(model_path, path);
@@ -77,10 +76,12 @@ Java_com_veyra_app_nativeengine_NativeLlama_nativeLoadModel(
     auto context_params = llama_context_default_params();
     context_params.n_ctx = 2048;
     context_params.n_batch = 256;
-    const unsigned int cores = std::max(2u, std::thread::hardware_concurrency());
-    const int threads = static_cast<int>(std::min(4u, cores));
-    context_params.n_threads = threads;
-    context_params.n_threads_batch = threads;
+    // CPU-only mobile profile: explicitly use six llama.cpp worker threads.
+    // Android's scheduler may still migrate workers or reduce clocks thermally.
+    constexpr int kInferenceThreads = 6;
+    constexpr int kBatchThreads = 6;
+    context_params.n_threads = kInferenceThreads;
+    context_params.n_threads_batch = kBatchThreads;
 
     g_context = llama_init_from_model(g_model, context_params);
     if (!g_context) {
