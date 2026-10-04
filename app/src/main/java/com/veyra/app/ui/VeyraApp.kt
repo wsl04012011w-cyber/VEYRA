@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,6 +54,7 @@ private val Border = Color(0xFF303034)
 
 @Composable
 fun VeyraApp() {
+    val context = LocalContext.current
     var selectedModel by remember { mutableStateOf<String?>(null) }
     var showSettings by remember { mutableStateOf(false) }
     var importMessage by remember { mutableStateOf<String?>(null) }
@@ -61,14 +63,13 @@ fun VeyraApp() {
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            val name = queryDisplayName(uri)
+            val name = queryDisplayName(context, uri)
             val isGguf = name.endsWith(".gguf", ignoreCase = true)
             if (isGguf) {
                 runCatching {
                     // Keep access to the selected document after process restarts.
                     // Native model loading will consume this URI in the engine stage.
                     // The URI itself is intentionally not copied into app memory.
-                    val context = androidx.compose.ui.platform.LocalContext.current
                     context.contentResolver.takePersistableUriPermission(
                         uri,
                         Intent.FLAG_GRANT_READ_URI_PERMISSION
@@ -264,17 +265,8 @@ private fun FourPointStar(modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-private fun queryDisplayName(uri: Uri): String {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    return remember(uri) {
-        context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
-            ?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    cursor.getString(0) ?: "modelo.gguf"
-                } else {
-                    "modelo.gguf"
-                }
-            } ?: "modelo.gguf"
-    }
-}
+private fun queryDisplayName(context: android.content.Context, uri: Uri): String =
+    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        ?.use { cursor ->
+            if (cursor.moveToFirst()) cursor.getString(0) ?: "modelo.gguf" else "modelo.gguf"
+        } ?: "modelo.gguf"
