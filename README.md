@@ -33,7 +33,7 @@ Build configuration:
 - Android NDK 27.2.12479018
 - CMake 3.22.1
 - ABI: arm64-v8a
-- CPU-only baseline (`n_gpu_layers=0`)
+- CPU-only baseline (`n_gpu_layers=0`); Vulkan, CUDA, OpenCL, SYCL, Metal and RPC backends are explicitly disabled in CMake
 - llama.cpp API: `llama_model_load_from_file`, `llama_init_from_model`, `llama_chat_apply_template`, tokenization, batch decode and sampler chain.
 
 This is an initial CPU-first implementation. Performance and memory requirements vary by device; a 1B quantized model still needs additional RAM for runtime context and working buffers. Context is intentionally limited to 2048 tokens and generation to 512 new tokens.
