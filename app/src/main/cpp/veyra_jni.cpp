@@ -68,7 +68,7 @@ Java_com_veyra_app_nativeengine_NativeLlama_nativeLoadModel(
 
     auto model_params = llama_model_default_params();
     model_params.n_gpu_layers = 0; // CPU-first Android baseline.
-    model_params.use_mmap = true;
+    model_params.load_mode = LLAMA_LOAD_MODE_MMAP;
     g_model = llama_model_load_from_file(path, model_params);
     env->ReleaseStringUTFChars(model_path, path);
 
@@ -165,20 +165,26 @@ Java_com_veyra_app_nativeengine_NativeLlama_nativeGenerate(
         return;
     }
 
-    llama_batch prompt_batch = llama_batch_init(token_count, 0, 1);
-    for (int32_t i = 0; i < token_count; ++i) {
-        prompt_batch.token[i] = tokens[static_cast<size_t>(i)];
-        prompt_batch.pos[i] = i;
-        prompt_batch.n_seq_id[i] = 1;
-        prompt_batch.seq_id[i][0] = 0;
-        prompt_batch.logits[i] = (i == token_count - 1);
-    }
-    const int decode_result = llama_decode(g_context, prompt_batch);
-    llama_batch_free(prompt_batch);
-    if (decode_result != 0) {
-        callback_string(env, callback, "onError", "Falha ao processar o prompt no llama.cpp.");
-        callback_complete(env, callback);
-        return;
+    int32_t prompt_offset = 0;
+    while (prompt_offset < token_count) {
+        const int32_t chunk_size = std::min(256, token_count - prompt_offset);
+        llama_batch prompt_batch = llama_batch_init(chunk_size, 0, 1);
+        for (int32_t i = 0; i < chunk_size; ++i) {
+            const int32_t token_index = prompt_offset + i;
+            prompt_batch.token[i] = tokens[static_cast<size_t>(token_index)];
+            prompt_batch.pos[i] = token_index;
+            prompt_batch.n_seq_id[i] = 1;
+            prompt_batch.seq_id[i][0] = 0;
+            prompt_batch.logits[i] = (token_index == token_count - 1);
+        }
+        const int decode_result = llama_decode(g_context, prompt_batch);
+        llama_batch_free(prompt_batch);
+        if (decode_result != 0) {
+            callback_string(env, callback, "onError", "Falha ao processar o prompt no llama.cpp.");
+            callback_complete(env, callback);
+            return;
+        }
+        prompt_offset += chunk_size;
     }
 
     auto sampler_params = llama_sampler_chain_default_params();
