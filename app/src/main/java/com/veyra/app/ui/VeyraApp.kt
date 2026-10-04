@@ -22,10 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
@@ -42,6 +39,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -177,12 +180,7 @@ fun VeyraApp() {
                 )
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { showSettings = true }) {
-                    Icon(
-                        imageVector = Icons.Outlined.Settings,
-                        contentDescription = "Configurações",
-                        tint = Color.White,
-                        modifier = Modifier.size(27.dp)
-                    )
+                    GearIcon(Modifier.size(27.dp))
                 }
             }
 
@@ -396,5 +394,52 @@ private fun FourPointStar(modifier: Modifier = Modifier) {
             close()
         }
         drawPath(path, Color.White)
+    }
+}
+
+
+@Composable
+private fun GearIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val radius = size.minDimension * 0.31f
+        val toothOuter = size.minDimension * 0.46f
+        val stroke = size.minDimension * 0.105f
+
+        for (i in 0 until 8) {
+            val angle = (i * PI / 4.0).toFloat()
+            val inner = Offset(
+                center.x + cos(angle) * radius,
+                center.y + sin(angle) * radius
+            )
+            val outer = Offset(
+                center.x + cos(angle) * toothOuter,
+                center.y + sin(angle) * toothOuter
+            )
+            drawLine(
+                color = Color.White,
+                start = inner,
+                end = outer,
+                strokeWidth = stroke,
+                cap = StrokeCap.Round
+            )
+        }
+        drawCircle(
+            color = Color.White,
+            radius = radius,
+            center = center,
+            style = Stroke(width = stroke)
+        )
+        drawCircle(
+            color = Background,
+            radius = size.minDimension * 0.105f,
+            center = center
+        )
+        drawCircle(
+            color = Color.White,
+            radius = size.minDimension * 0.105f,
+            center = center,
+            style = Stroke(width = stroke * 0.72f)
+        )
     }
 }
