@@ -40,8 +40,10 @@ jobs:
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
 
-      - name: Build debug APK
-        run: gradle --no-daemon :app:assembleDebug
+      - name: Build debug APK (Kotlin + llama.cpp / CMake)
+        env:
+          CMAKE_BUILD_PARALLEL_LEVEL: "2"
+        run: gradle --no-daemon --max-workers=2 :app:assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
