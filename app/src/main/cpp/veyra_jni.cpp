@@ -150,7 +150,7 @@ Java_com_veyra_app_nativeengine_NativeLlama_nativeGenerate(
     }
 
     const llama_vocab * vocab = llama_model_get_vocab(g_model);
-    int32_t token_count = llama_tokenize(vocab, formatted.data(), formatted_size, nullptr, 0, true, true);
+    int32_t token_count = llama_tokenize(vocab, formatted.data(), formatted_size, nullptr, 0, false, true);
     if (token_count >= 0) {
         callback_string(env, callback, "onError", "Não foi possível dimensionar a tokenização do prompt.");
         callback_complete(env, callback);
@@ -158,7 +158,7 @@ Java_com_veyra_app_nativeengine_NativeLlama_nativeGenerate(
     }
     std::vector<llama_token> tokens(static_cast<size_t>(-token_count));
     token_count = llama_tokenize(vocab, formatted.data(), formatted_size, tokens.data(),
-                                 static_cast<int32_t>(tokens.size()), true, true);
+                                 static_cast<int32_t>(tokens.size()), false, true);
     if (token_count <= 0 || static_cast<uint32_t>(token_count) >= llama_n_ctx(g_context) - 8) {
         callback_string(env, callback, "onError", "A mensagem excede o contexto disponível de 2048 tokens.");
         callback_complete(env, callback);
@@ -169,6 +169,7 @@ Java_com_veyra_app_nativeengine_NativeLlama_nativeGenerate(
     while (prompt_offset < token_count) {
         const int32_t chunk_size = std::min(256, token_count - prompt_offset);
         llama_batch prompt_batch = llama_batch_init(chunk_size, 0, 1);
+        prompt_batch.n_tokens = chunk_size;
         for (int32_t i = 0; i < chunk_size; ++i) {
             const int32_t token_index = prompt_offset + i;
             prompt_batch.token[i] = tokens[static_cast<size_t>(token_index)];
@@ -180,7 +181,7 @@ Java_com_veyra_app_nativeengine_NativeLlama_nativeGenerate(
         const int decode_result = llama_decode(g_context, prompt_batch);
         llama_batch_free(prompt_batch);
         if (decode_result != 0) {
-            callback_string(env, callback, "onError", "Falha ao processar o prompt no llama.cpp.");
+            callback_string(env, callback, "onError", "llama_decode falhou ao processar o prompt (código " + std::to_string(decode_result) + ").");
             callback_complete(env, callback);
             return;
         }
@@ -195,6 +196,7 @@ Java_com_veyra_app_nativeengine_NativeLlama_nativeGenerate(
     llama_sampler_chain_add(sampler, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
 
     llama_batch batch = llama_batch_init(1, 0, 1);
+    batch.n_tokens = 1;
     int32_t generated = 0;
     while (!g_stop.load() && generated < 512 && token_count + generated < static_cast<int32_t>(llama_n_ctx(g_context)) - 1) {
         const llama_token token = llama_sampler_sample(sampler, g_context, -1);
