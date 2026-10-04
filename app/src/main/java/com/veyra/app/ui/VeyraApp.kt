@@ -98,6 +98,8 @@ fun VeyraApp() {
                     modelReady = true
                     status = "Gemma 3 1B pronto · execução local"
                 } else {
+                    // A failed native load must not leave a broken cached model blocking retries.
+                    modelFile.delete()
                     status = error
                 }
             } catch (error: Exception) {
