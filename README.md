@@ -33,14 +33,14 @@ Build configuration:
 - Android NDK 27.2.12479018
 - CMake 3.22.1
 - ABI: arm64-v8a
-- CPU-only baseline (`n_gpu_layers=0`); Vulkan, CUDA, OpenCL, SYCL, Metal and RPC backends are explicitly disabled in CMake
+- CPU-only baseline (`n_gpu_layers=0`); Vulkan, CUDA, OpenCL, SYCL, Metal and RPC backends are explicitly disabled in CMake; `GGML_CPU_KLEIDIAI=ON` and `GGML_LTO=ON`
 - llama.cpp API: `llama_model_load_from_file`, `llama_init_from_model`, `llama_chat_apply_template`, tokenization, batch decode and sampler chain.
 
 This is an initial CPU-first implementation. Performance and memory requirements vary by device; a 1B quantized model still needs additional RAM for runtime context and working buffers. Context is intentionally limited to 2048 tokens and generation to 512 new tokens.
 
 ## Build
 
-Requirements: JDK 17, Android SDK 35, NDK 27.2.12479018, CMake 3.22.1, Gradle 8.13.
+Requirements: JDK 17, Android SDK 35, NDK 27.2.12479018, CMake 3.22.1, Gradle 8.13. The `debug` APK keeps the Android app debuggable, but CMake builds the native inference engine as Release for realistic CPU performance.
 
 ```bash
 gradle --no-daemon --max-workers=2 :app:assembleDebug --stacktrace
@@ -48,7 +48,7 @@ gradle --no-daemon --max-workers=2 :app:assembleDebug --stacktrace
 
 The APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
 
-GitHub Actions performs the same Kotlin and native CMake build on pushes and pull requests to `main`, then uploads `veyra-debug-apk` as a workflow artifact.
+GitHub Actions performs the same Kotlin and native CMake build on pushes and pull requests to `main`, then uploads `veyra-debug-apk` as a workflow artifact. The extended Material icon pack is intentionally excluded; the settings gear is drawn locally to avoid bundling the unused icon catalogue.
 
 ## Current limitations
 
